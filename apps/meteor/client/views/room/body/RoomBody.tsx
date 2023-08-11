@@ -1,5 +1,6 @@
 import type { IMessage, IUser } from '@rocket.chat/core-typings';
 import { isEditedMessage } from '@rocket.chat/core-typings';
+import { useMergedRefs } from '@rocket.chat/fuselage-hooks';
 import {
 	usePermission,
 	useRole,
@@ -43,6 +44,7 @@ import UnreadMessagesIndicator from './UnreadMessagesIndicator';
 import UploadProgressIndicator from './UploadProgressIndicator';
 import { useFileUploadDropTarget } from './hooks/useFileUploadDropTarget';
 import { useGoToHomeOnRemoved } from './hooks/useGoToHomeOnRemoved';
+import { useOnResize } from './hooks/useOnResize';
 import { useReadMessageWindowEvents } from './hooks/useReadMessageWindowEvents';
 import { useRestoreScrollPosition } from './hooks/useRestoreScrollPosition';
 import { useRetentionPolicy } from './hooks/useRetentionPolicy';
@@ -78,35 +80,38 @@ const RoomBody = (): ReactElement => {
 
 	const [fileUploadTriggerProps, fileUploadOverlayProps] = useFileUploadDropTarget();
 
-	const _isAtBottom = useCallback((scrollThreshold = 0) => {
-		const wrapper = wrapperRef.current;
+	const _isAtBottom = useCallback(
+		(scrollThreshold = 0) => {
+			const wrapper = wrapperRef.current;
 
-		if (!wrapper) {
+			if (!wrapper) {
+				return false;
+			}
+
+			if (isAtBottom(wrapper, scrollThreshold)) {
+				setHasNewMessages(false);
+				return true;
+			}
 			return false;
-		}
-
-		if (isAtBottom(wrapper, scrollThreshold)) {
-			setHasNewMessages(false);
-			return true;
-		}
-		return false;
-	}, []);
+		},
+		[setHasNewMessages, wrapperRef],
+	);
 
 	const checkIfScrollIsAtBottom = useCallback(() => {
 		atBottomRef.current = _isAtBottom(100);
-	}, [_isAtBottom]);
+	}, [_isAtBottom, atBottomRef]);
 
 	const handleNewMessageButtonClick = useCallback(() => {
 		atBottomRef.current = true;
 		sendToBottomIfNecessary();
 		chat.composer?.focus();
-	}, [chat, sendToBottomIfNecessary]);
+	}, [atBottomRef, chat.composer, sendToBottomIfNecessary]);
 
 	const handleJumpToRecentButtonClick = useCallback(() => {
 		atBottomRef.current = true;
 		RoomHistoryManager.clear(room._id);
 		RoomHistoryManager.getMoreIfIsEmpty(room._id);
-	}, [room._id]);
+	}, [atBottomRef, room._id]);
 
 	const [unread, setUnreadCount] = useUnreadMessages(room);
 
@@ -220,25 +225,11 @@ const RoomBody = (): ReactElement => {
 		return () => {
 			callbacks.remove('streamNewMessage', room._id);
 		};
-	}, [_isAtBottom, room._id, sendToBottom, user?._id]);
+	}, [_isAtBottom, room._id, sendToBottom, setHasNewMessages, user?._id]);
 
-	useEffect(() => {
-		const messageList = wrapperRef.current?.querySelector('ul');
+	const ref = useOnResize(sendToBottomIfNecessary);
 
-		if (!messageList) {
-			return;
-		}
-
-		const observer = new ResizeObserver(() => {
-			sendToBottomIfNecessary();
-		});
-
-		observer.observe(messageList);
-
-		return () => {
-			observer?.disconnect();
-		};
-	}, [sendToBottomIfNecessary]);
+	const mergedRefs = useMergedRefs(ref, wrapperRef);
 
 	const router = useRouter();
 
@@ -367,7 +358,7 @@ const RoomBody = (): ReactElement => {
 			wrapper.removeEventListener('scroll', updateUnreadCount);
 			wrapper.removeEventListener('scroll', handleWrapperScroll);
 		};
-	}, [_isAtBottom, room._id, setUnreadCount]);
+	}, [_isAtBottom, atBottomRef, room._id, setUnreadCount, wrapperRef]);
 
 	useEffect(() => {
 		const wrapper = wrapperRef.current;
@@ -399,7 +390,7 @@ const RoomBody = (): ReactElement => {
 			wrapper.removeEventListener('MessageGroup', afterMessageGroup);
 			wrapper.removeEventListener('scroll', handleWrapperScroll);
 		};
-	}, [room._id, sendToBottom]);
+	}, [room._id, sendToBottom, wrapperRef]);
 
 	useRestoreScrollPosition(room._id, scrollMessageList, sendToBottom);
 
@@ -442,7 +433,7 @@ const RoomBody = (): ReactElement => {
 			wrapper.removeEventListener('touchstart', handleTouchStart);
 			wrapper.removeEventListener('touchend', handleTouchEnd);
 		};
-	}, [checkIfScrollIsAtBottom]);
+	}, [atBottomRef, checkIfScrollIsAtBottom, wrapperRef]);
 
 	const replyMID = useSearchParameter('reply');
 
@@ -567,8 +558,8 @@ const RoomBody = (): ReactElement => {
 										.join(' ')}
 								>
 									<MessageListErrorBoundary>
-										<ScrollableContentWrapper ref={wrapperRef}>
-											<ul className='messages-list' aria-live='polite'>
+										<ScrollableContentWrapper ref={mergedRefs}>
+											<ul className='messages-list' aria-live='polite' ref={ref}>
 												{canPreview ? (
 													<>
 														{hasMorePreviousMessages ? (
