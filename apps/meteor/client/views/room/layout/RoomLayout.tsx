@@ -16,7 +16,7 @@ const RoomLayout = ({ header, body, footer, aside, ...props }: RoomLayoutProps):
 	<Box is='main' h='full' display='flex' flexDirection='column' bg='room' {...props}>
 		<Suspense fallback={<HeaderSkeleton />}>{header}</Suspense>
 		<Box display='flex' flexGrow={1} overflow='hidden' height='full' position='relative'>
-			<Box display='flex' data-id='dropTargetOverlay' flexDirection='column' flexGrow={1} minWidth={0}>
+			<Box display='flex' data-id='dropTargetTrigger' flexDirection='column' flexGrow={1} minWidth={0}>
 				<Box is='div' display='flex' flexDirection='column' flexGrow={1}>
 					<Suspense fallback={null}>{body}</Suspense>
 				</Box>

@@ -2,6 +2,8 @@ import fs from 'fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
+import { expect } from '../../utils/test';
+
 export class HomeContent {
 	protected readonly page: Page;
 
@@ -224,7 +226,9 @@ export class HomeContent {
 			return data;
 		}, contract);
 
-		await this.inputMessage.dispatchEvent('dragenter', { dataTransfer });
+		await expect(this.page.locator('.messages-container-main')).toBeVisible();
+
+		await this.page.locator('[data-id="dropTargetTrigger"]').dispatchEvent('dragenter', { dataTransfer });
 
 		await this.page.locator('[role=dialog][data-qa="DropTargetOverlay"]').dispatchEvent('drop', { dataTransfer });
 	}

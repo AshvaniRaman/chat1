@@ -72,7 +72,6 @@ const RoomBody = (): ReactElement => {
 
 	const messagesBoxRef = useRef<HTMLDivElement | null>(null);
 	const lastScrollTopRef = useRef(0);
-	const dropTargetOverlayRef = useRef<Element | null>(null);
 
 	const chat = useChat();
 
@@ -491,12 +490,7 @@ const RoomBody = (): ReactElement => {
 
 	useReadMessageWindowEvents();
 
-	// TODO: check fileUploadTriggerProps
-	useEffect(() => {
-		if (dropTargetOverlayRef) {
-			dropTargetOverlayRef.current = document.querySelector('[data-id="dropTargetOverlay"]');
-		}
-	}, []);
+	const dropdownOverlay = document.querySelector('[data-id="dropTargetTrigger"]');
 
 	return (
 		<>
@@ -510,8 +504,7 @@ const RoomBody = (): ReactElement => {
 				>
 					<div className='messages-container-wrapper'>
 						<div className='messages-container-main' {...fileUploadTriggerProps}>
-							{dropTargetOverlayRef.current &&
-								createPortal(<DropTargetOverlay {...fileUploadOverlayProps} />, dropTargetOverlayRef.current)}
+							{dropdownOverlay && createPortal(<DropTargetOverlay {...fileUploadOverlayProps} />, dropdownOverlay)}
 							<div className={['container-bars', (unread || uploads.length) && 'show'].filter(isTruthy).join(' ')}>
 								{unread && (
 									<UnreadMessagesIndicator
