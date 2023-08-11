@@ -83,7 +83,6 @@ type MessageBoxProps = {
 	readOnly: boolean;
 	onSend?: (params: { value: string; tshow?: boolean }) => Promise<void>;
 	onJoin?: () => Promise<void>;
-	onResize?: () => void;
 	onTyping?: () => void;
 	onEscape?: () => void;
 	onNavigateToPreviousMessage?: () => void;
